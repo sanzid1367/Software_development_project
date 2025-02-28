@@ -27,4 +27,8 @@ measures.<br>
 5. Ability to view, modify, or cancel existing bookings easily.<br>
 6. Access to responsive customer support through various
 channels (phone, email, chat) to assist with any queries or
+<<<<<<< HEAD
 issues.<br>
+=======
+issues.<br>
+>>>>>>> a417f1731b33d94129f515f82121221f9627dfcf
