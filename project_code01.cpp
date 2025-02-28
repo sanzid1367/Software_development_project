@@ -1,103 +1,117 @@
 #include <iostream>
-#include <fstream>
 #include <string>
-#include <limits> // Required for numeric_limits
-
+#include <unordered_set>
+#include <thread>
+#include <chrono>
 using namespace std;
 
-bool registerUser();
-bool signIn();
+unordered_set<string> registeredEmails;
+unordered_set<string> registeredContacts;
 
-int main()
-{
-    int choice;
+const string fixedUsername = "admin";
+const string fixedPassword = "admin123";
 
-    while (true)
-    {
-        cout << "------ Welcome to the Bus Reservation System------\n\n";
-        cout << "1. Register\n2. Log In\n3. Exit\n\n";
+bool isPasswordValid(const string& password, const string& confirmPassword) {
+    return password == confirmPassword;
+}
+
+bool isUniqueRegistration(const string& email, const string& contact) {
+    return registeredEmails.find(email) == registeredEmails.end() && 
+           registeredContacts.find(contact) == registeredContacts.end();
+}
+
+void login() {
+    string username, password;
+    int attempts = 0;
+
+    while (attempts < 3) {
+        cout << "\nEnter Username: ";
+        cin >> username;
+        cout << "Enter Password: ";
+        cin >> password;
+
+        if (username == fixedUsername && password == fixedPassword) {
+            cout << "\nLogin Successful!\n";
+            return;
+        } else {
+            cout << "\nIncorrect Username or Password. Try again.\n";
+            attempts++;
+        }
+    }
+}
+
+void registerUser() {
+    string name, email, contact, address, nid, password, confirmPassword;
+
+    cout << "Enter your Name: ";
+    getline(cin, name);
+
+    cout << "Enter your Email: ";
+    getline(cin, email);
+
+    cout << "Enter your Contact Number: ";
+    getline(cin, contact);
+
+    // Check if email or contact is already registered
+    if (!isUniqueRegistration(email, contact)) {
+        cout << "\nThis email or contact number is already registered. Please use a different one.\n";
+        return;
+    }
+
+    cout << "Enter your Address: ";
+    getline(cin, address);
+
+    cout << "Enter your National ID (NID): ";
+    getline(cin, nid);
+
+    cout << "Enter your Password: ";
+    getline(cin, password);
+
+    cout << "Confirm your Password: ";
+    getline(cin, confirmPassword);
+
+    // Validate password
+    if (isPasswordValid(password, confirmPassword)) {
+        // Store email and contact as registered
+        registeredEmails.insert(email);
+        registeredContacts.insert(contact);
+
+        cout << "\nRegistration Successful\n";
+        cout << "Name: " << name << endl;
+        cout << "Email: " << email << endl;
+        cout << "Contact: " << contact << endl;
+        cout << "Address: " << address << endl;
+        cout << "NID: " << nid << endl;
+    } else {
+        cout << "\nPassword mismatch! Please try again.\n";
+    }
+}
+
+int main() {
+    cout << "\nWelcome to Swift Book. Fastest Online Ticket Reservation System\n";
+    
+    while (true) {
+        cout << "\nChoose an option:\n";
+        cout << "1. Register\n";
+        cout << "2. Login\n";
+        cout << "3. Exit\n";
         cout << "Enter your choice: ";
-
+        int choice;
         cin >> choice;
+        cin.ignore(); // To handle newline character
 
-        if (choice == 1)
-        {
-            if (registerUser())
-            {
-                cout << "Registration successful! You can now log in." << endl;
-            }
-        }
-        else if (choice == 2)
-        {
-            if (signIn())
-            {
-                cout << "Login successful! Welcome! Now You can book your tickets." << endl;
-            }
-            else
-            {
-                cout << "Invalid username or password." << endl;
-            }
-        }
-        else if (choice == 3)
-        {
-            cout << "Thank you for using the Bus Reservation System! Goodbye!" << endl;
-            return 0; // Exit the program
-        }
-        else
-        {
-            cout << "Invalid choice! Please try again." << endl;
+        switch (choice) {
+            case 1:
+                registerUser();
+                break;
+            case 2:
+                login();
+                break;
+            case 3:
+                cout << "\nThank you for using Swift Book. Goodbye!\n";
+                return 0;
+            default:
+                cout << "\nInvalid choice. Please try again.\n";
         }
     }
-}
-
-bool registerUser()
-{
-    string username, password;
-
-    cout << "Enter username: ";
-    getline(cin, username);
-    cout << "Enter password: ";
-    getline(cin, password);
-
-    ifstream infile("users.txt");
-    string u, p;
-    while (infile >> u >> p)
-    {
-        if (u == username)
-        {
-            cout << "Username already exists. Try a different one." << endl;
-            infile.close();
-            return false;
-        }
-    }
-    infile.close();
-
-    ofstream outfile("users.txt", ios::app);
-    outfile << username << " " << password << endl;
-    outfile.close();
-
-    return true;
-}
-
-bool signIn()
-{
-    string username, password;
-
-    cout << "Enter username: ";
-    getline(cin, username);
-    cout << "Enter password: ";
-    getline(cin, password);
-
-    ifstream infile("users.txt");
-    string u, p;
-    while (infile >> u >> p)
-    {
-        if (u == username && p == password)
-        {
-            infile.close();
-            return true;
-        }
-    }
-    infile.close();
-    return false;
 }
