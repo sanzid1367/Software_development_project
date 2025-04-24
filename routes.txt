@@ -1,0 +1,39 @@
+1,Bus,Dhaka,Chittagong,08:00,50,50,300
+2,Bus,Dhaka,Cox's Bazar,08:00,50,50,300
+3,Bus,Dhaka,Sylhet,08:00,50,50,300
+4,Bus,Dhaka,Rajshahi,08:00,50,50,300
+5,Bus,Dhaka,Jashore,08:00,50,50,300
+6,Bus,Dhaka,Khulna,08:00,50,50,300
+7,Bus,Dhaka,Rangpur,08:00,50,50,300
+8,Bus,Jashore,Rajshahi,08:00,50,50,300
+9,Bus,Jashore,Dhaka,08:00,50,50,300
+10,Bus,Sylhet,Dhaka,08:00,50,50,300
+11,Bus,Rajshahi,Dhaka,08:00,50,50,300
+12,Bus,Cox's Bazar,Dhaka,08:00,50,50,300
+13,Bus,Chittagong,Dhaka,08:00,50,50,300
+14,Train,Dhaka,Chittagong,08:00,50,50,500
+15,Train,Dhaka,Cox's Bazar,08:00,50,50,500
+16,Train,Dhaka,Sylhet,08:00,50,50,500
+17,Train,Dhaka,Rajshahi,08:00,50,50,500
+18,Train,Dhaka,Jashore,08:00,50,50,500
+19,Train,Dhaka,Khulna,08:00,50,50,500
+20,Train,Dhaka,Rangpur,08:00,50,50,500
+21,Train,Jashore,Rajshahi,08:00,50,50,500
+22,Train,Jashore,Dhaka,08:00,50,50,500
+23,Train,Sylhet,Dhaka,08:00,50,50,500
+24,Train,Rajshahi,Dhaka,08:00,50,50,500
+25,Train,Cox's Bazar,Dhaka,08:00,50,50,500
+26,Train,Chittagong,Dhaka,08:00,50,50,500
+27,Airline,Dhaka,Chittagong,10:00,100,100,5000
+28,Airline,Dhaka,Cox's Bazar,10:00,100,100,5000
+29,Airline,Dhaka,Sylhet,10:00,100,100,5000
+30,Airline,Dhaka,Rajshahi,10:00,100,100,5000
+31,Airline,Dhaka,Jashore,10:00,100,100,5000
+32,Airline,Dhaka,Khulna,10:00,100,100,5000
+33,Airline,Dhaka,Rangpur,10:00,100,100,5000
+34,Airline,Jashore,Rajshahi,10:00,100,100,5000
+35,Airline,Jashore,Dhaka,10:00,100,100,5000
+36,Airline,Sylhet,Dhaka,10:00,100,100,5000
+37,Airline,Rajshahi,Dhaka,10:00,100,100,5000
+38,Airline,Cox's Bazar,Dhaka,10:00,100,100,5000
+39,Airline,Chittagong,Dhaka,10:00,100,100,5000

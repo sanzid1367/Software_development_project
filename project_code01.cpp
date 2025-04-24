@@ -7,7 +7,7 @@ using namespace std;
 
 // Structures
 struct User {
-    string username, password;
+    string username, email, contact, nidNo, address, password;
     bool isAdmin;
 };
 
@@ -30,8 +30,9 @@ struct Booking {
 // Function Prototypes
 void registerUser();
 bool loginUser(string &username, bool &isAdmin);
+bool userExists(const string &username); // New function to check for duplicate usernames
 void addRoute();
-void initializeRoutes(); // New function to add predefined routes
+void initializeRoutes();
 void viewRoutes();
 void bookTicket(const string &username);
 void cancelTicket(const string &username);
@@ -102,11 +103,34 @@ int main() {
 
 void registerUser() {
     User user;
+    string confirmPassword;
+
     cout << "Enter username: ";
     getline(cin, user.username);
+    if (userExists(user.username)) {
+        cout << "Username already exists! Please choose another.\n";
+        return;
+    }
+
+    cout << "Enter email: ";
+    getline(cin, user.email);
+    cout << "Enter contact number: ";
+    getline(cin, user.contact);
+    cout << "Enter NID number: ";
+    getline(cin, user.nidNo);
+    cout << "Enter address: ";
+    getline(cin, user.address);
     cout << "Enter password: ";
     getline(cin, user.password);
-    user.isAdmin = false;
+    cout << "Confirm password: ";
+    getline(cin, confirmPassword);
+
+    if (user.password != confirmPassword) {
+        cout << "Passwords do not match!\n";
+        return;
+    }
+
+    user.isAdmin = false; // Default: not admin
     saveUser(user);
     cout << "Registration successful!\n";
 }
@@ -122,13 +146,17 @@ bool loginUser(string &username, bool &isAdmin) {
     string line;
     while (getline(file, line)) {
         stringstream ss(line);
-        string u, p;
-        int admin;
-        getline(ss, u, ',');
-        getline(ss, p, ',');
-        ss >> admin;
-        if (u == username && p == password) {
-            isAdmin = admin;
+        User u;
+        string temp;
+        getline(ss, u.username, ',');
+        getline(ss, u.email, ',');
+        getline(ss, u.contact, ',');
+        getline(ss, u.nidNo, ',');
+        getline(ss, u.address, ',');
+        getline(ss, u.password, ',');
+        ss >> u.isAdmin;
+        if (u.username == username && u.password == password) {
+            isAdmin = u.isAdmin;
             file.close();
             cout << "Login successful!\n";
             return true;
@@ -136,6 +164,22 @@ bool loginUser(string &username, bool &isAdmin) {
     }
     file.close();
     cout << "Invalid credentials!\n";
+    return false;
+}
+
+bool userExists(const string &username) {
+    ifstream file(USER_FILE);
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string u;
+        getline(ss, u, ',');
+        if (u == username) {
+            file.close();
+            return true;
+        }
+    }
+    file.close();
     return false;
 }
 
@@ -149,7 +193,6 @@ void addRoute() {
     cout << "Enter destination: ";
     getline(cin, route.destination);
 
-    // Check for duplicate route
     if (routeExists(route.type, route.origin, route.destination)) {
         cout << "Route already exists!\n";
         return;
@@ -193,7 +236,6 @@ void initializeRoutes() {
             string origin = route.first;
             string destination = route.second;
 
-            // Skip if route already exists
             if (routeExists(type, origin, destination)) {
                 continue;
             }
@@ -203,10 +245,10 @@ void initializeRoutes() {
             r.type = type;
             r.origin = origin;
             r.destination = destination;
-            r.time = (type == "Airline") ? "10:00" : "08:00"; // Sample time
-            r.totalSeats = (type == "Airline") ? 100 : 50;    // Sample seats
+            r.time = (type == "Airline") ? "10:00" : "08:00";
+            r.totalSeats = (type == "Airline") ? 100 : 50;
             r.availableSeats = r.totalSeats;
-            r.price = (type == "Airline") ? 5000.0 : (type == "Train") ? 500.0 : 300.0; // Sample prices
+            r.price = (type == "Airline") ? 5000.0 : (type == "Train") ? 500.0 : 300.0;
             saveRoute(r);
         }
     }
@@ -340,7 +382,9 @@ void viewTicket(const string &username) {
 
 void saveUser(const User &user) {
     ofstream file(USER_FILE, ios::app);
-    file << user.username << "," << user.password << "," << user.isAdmin << "\n";
+    file << user.username << "," << user.email << "," << user.contact << ","
+         << user.nidNo << "," << user.address << "," << user.password << ","
+         << user.isAdmin << "\n";
     file.close();
 }
 
@@ -382,6 +426,7 @@ vector<Route> loadRoutes() {
 }
 
 vector<Booking> loadBookings() {
+    
     vector<Booking> bookings;
     ifstream file(BOOKING_FILE);
     string line;
