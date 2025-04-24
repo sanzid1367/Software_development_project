@@ -1,291 +1,405 @@
-#include <chrono>
 #include <iostream>
-#include <regex> // For email validation
+#include <fstream>
 #include <string>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
-
+#include <sstream>
 using namespace std;
 
-unordered_map<string, string> userCredentials; // Store email and password
-unordered_set<string> registeredContacts;
-
-// Structure to hold ticket information
-struct Ticket {
-  string type;     // "Bus", "Train", or "Plane"
-  string details;  // Event details
-  int availableSeats;
+// Structures
+struct User {
+    string username, password;
+    bool isAdmin;
 };
 
-// Vector to store available tickets
-vector<Ticket> availableTickets = {
-    {"Bus", "Dhaka to Chittagong - 10:00 AM", 45},
-    {"Bus", "Dhaka to Jashore - 10:00 AM", 45},
-    {"Bus", "Dhaka to Khulna - 11:00 PM", 20},
-    {"Plane", "Dhaka to Jashore - 10:00 AM", 15},
-    {"Plane", "Dhaka to Cox's Bazar - 1:00 PM", 15},
-    {"Train", "Dhaka to Rajshahi - 8:30 PM", 30},
-    {"Train", "Dhaka to Jashore - 10:00 AM", 55},
-    {"Train", "Dhaka to Sylhet - 6:00 AM", 55},
+struct Route {
+    int id;
+    string type; // Bus, Train, Airline
+    string origin, destination;
+    string time;
+    int totalSeats, availableSeats;
+    double price;
 };
 
-bool isPasswordValid(const string &password, const string &confirmPassword) {
-  return password == confirmPassword;
-}
+struct Booking {
+    int bookingId;
+    string username;
+    int routeId;
+    int seatNumber;
+};
 
-bool isUniqueRegistration(const string &email, const string &contact) {
-  return userCredentials.find(email) == userCredentials.end() &&
-         registeredContacts.find(contact) == registeredContacts.end();
-}
+// Function Prototypes
+void registerUser();
+bool loginUser(string &username, bool &isAdmin);
+void addRoute();
+void initializeRoutes(); // New function to add predefined routes
+void viewRoutes();
+void bookTicket(const string &username);
+void cancelTicket(const string &username);
+void viewTicket(const string &username);
+void saveUser(const User &user);
+void saveRoute(const Route &route);
+void saveBooking(const Booking &booking);
+vector<Route> loadRoutes();
+vector<Booking> loadBookings();
+int generateBookingId();
+bool routeExists(const string &type, const string &origin, const string &destination);
 
-bool isValidEmail(const string &email) {
-  const regex pattern(R"((\w+)(\.\w+)*@(\w+)(\.\w+)+)");
-  return regex_match(email, pattern);
-}
+// Global Variables
+const string USER_FILE = "users.txt";
+const string ROUTE_FILE = "routes.txt";
+const string BOOKING_FILE = "bookings.txt";
 
-void showTicketOptions() {
-  cout << "\nWelcome to Swift Book! Now choose your desired options:\n";
-  cout << "1. View Available Tickets\n";
-  cout << "2. Book Ticket\n";
-  cout << "3. Logout\n";
-  cout << "4. Exit\n";
-  cout << "Enter your choice: ";
-}
+int main() {
+    string username;
+    bool isAdmin;
+    int choice;
 
-void displayAvailableTickets() {
-  cout << "\nAvailable Tickets:\n";
-  cout << "1. Bus\n";
-  cout << "2. Train\n";
-  cout << "3. Plane\n";
-  cout << "Enter your choice (or 0 to go back): ";
+    // Initialize predefined routes at program start
+    initializeRoutes();
 
-  int choice;
-  cin >> choice;
-  cin.ignore(); // To handle newline character
-
-  if (choice == 0) {
-    return; // Go back to the main menu
-  }
-
-  string selectedType;
-  switch (choice) {
-  case 1:
-    selectedType = "Bus";
-    break;
-  case 2:
-    selectedType = "Train";
-    break;
-  case 3:
-    selectedType = "Plane";
-    break;
-  default:
-    cout << "\nInvalid choice. Please try again.\n";
-    return;
-  }
-
-  cout << "\nAvailable " << selectedType << " Tickets:\n";
-  bool ticketsFound = false;
-  for (size_t i = 0; i < availableTickets.size(); ++i) {
-    if (availableTickets[i].type == selectedType) {
-      cout << i + 1 << ". Details: " << availableTickets[i].details
-           << ", Available Seats: " << availableTickets[i].availableSeats
-           << endl;
-      ticketsFound = true;
-    }
-  }
-
-  if (!ticketsFound) {
-    cout << "No " << selectedType << " tickets available at the moment.\n";
-  }
-}
-
-void bookTicket() {
-  cout << "\nBook Ticket:\n";
-  cout << "1. Bus\n";
-  cout << "2. Train\n";
-  cout << "3. Plane\n";
-  cout << "Enter your choice (or 0 to go back): ";
-
-  int choice;
-  cin >> choice;
-  cin.ignore(); // To handle newline character
-
-  if (choice == 0) {
-    return; // Go back to the main menu
-  }
-
-  string selectedType;
-  switch (choice) {
-  case 1:
-    selectedType = "Bus";
-    break;
-  case 2:
-    selectedType = "Train";
-    break;
-  case 3:
-    selectedType = "Plane";
-    break;
-  default:
-    cout << "\nInvalid choice. Please try again.\n";
-    return;
-  }
-
-  cout << "\nAvailable " << selectedType << " Tickets:\n";
-  vector<int> validTicketIndices;
-  for (size_t i = 0; i < availableTickets.size(); ++i) {
-    if (availableTickets[i].type == selectedType) {
-      cout << i + 1 << ". Details: " << availableTickets[i].details
-           << ", Available Seats: " << availableTickets[i].availableSeats
-           << endl;
-      validTicketIndices.push_back(i);
-    }
-  }
-
-  if (validTicketIndices.empty()) {
-    cout << "No " << selectedType << " tickets available at the moment.\n";
-    return;
-  }
-
-  cout << "\nEnter the number of the ticket you want to book: ";
-  cin >> choice;
-  cin.ignore(); // To handle newline character
-
-  if (choice > 0 && choice <= validTicketIndices.size()) {
-    int ticketIndex = validTicketIndices[choice - 1];
-    cout << "\nYou have chosen to book the following ticket:\n";
-    cout << "Type: " << availableTickets[ticketIndex].type
-         << ", Details: " << availableTickets[ticketIndex].details
-         << ", Available Seats: "
-         << availableTickets[ticketIndex].availableSeats << endl;
-
-    // Add ticket booking logic here (e.g., reduce available seats, etc.)
-    cout << "Ticket booked successfully!\n";
-  } else {
-    cout << "\nInvalid choice. Please try again.\n";
-  }
-}
-
-void login() {
-  string email, password;
-  int attempts = 0;
-
-  while (attempts < 3) {
-    cout << "\nEnter Email: ";
-    getline(cin, email);
-    cout << "Enter Password: ";
-    getline(cin, password);
-
-    if (userCredentials.find(email) != userCredentials.end() &&
-        userCredentials[email] == password) {
-      cout << "\nLogin Successful!\n";
-
-      while (true) {
-        showTicketOptions();
-        int choice;
+    while (true) {
+        cout << "\n=== Online Ticket Reservation System (Swift Book)===\n";
+        cout << "1. Register\n2. Login\n3. Exit\n";
+        cout << "Enter choice: ";
         cin >> choice;
-        cin.ignore(); // To handle newline character
+        cin.ignore();
 
-        switch (choice) {
-        case 1:
-          displayAvailableTickets();
-          break;
-        case 2:
-          bookTicket();
-          break;
-        case 3:
-          cout << "\nLogging out...\n";
-          return; // Exit the ticket options to return to the main menu
-        case 4:
-          cout << "\nThank you for using Swift Book. Goodbye!\n";
-          exit(0); // Exit the program
-        default:
-          cout << "\nInvalid choice. Please try again.\n";
+        if (choice == 1) {
+            registerUser();
+        } else if (choice == 2) {
+            if (loginUser(username, isAdmin)) {
+                while (true) {
+                    cout << "\n=== " << (isAdmin ? "Admin" : "User") << " Menu ===\n";
+                    if (isAdmin) {
+                        cout << "1. Add Route\n2. View Routes\n3. Exit\n";
+                    } else {
+                        cout << "1. View Routes\n2. Book Ticket\n3. Cancel Ticket\n4. View Tickets\n5. Exit\n";
+                    }
+                    cout << "Enter choice: ";
+                    cin >> choice;
+                    cin.ignore();
+
+                    if (isAdmin) {
+                        if (choice == 1) addRoute();
+                        else if (choice == 2) viewRoutes();
+                        else if (choice == 3) break;
+                    } else {
+                        if (choice == 1) viewRoutes();
+                        else if (choice == 2) bookTicket(username);
+                        else if (choice == 3) cancelTicket(username);
+                        else if (choice == 4) viewTicket(username);
+                        else if (choice == 5) break;
+                    }
+                }
+            }
+        } else if (choice == 3) {
+            cout << "Goodbye!\n";
+            break;
         }
-      }
-    } else {
-      cout << "\nIncorrect Email or Password. Try again.\n";
-      attempts++;
     }
-  }
-  cout << "\nToo many failed attempts. Please try again later.\n";
+    return 0;
 }
 
 void registerUser() {
-  string name, email, contact, address, nid, password, confirmPassword;
-
-  cout << "Enter your Name: ";
-  getline(cin, name);
-
-  cout << "Enter your Email: ";
-  getline(cin, email);
-  if (!isValidEmail(email)) {
-    cout << "\nInvalid email format. Please try again.\n";
-    return;
-  }
-
-  cout << "Enter your Contact Number: ";
-  getline(cin, contact);
-
-  if (!isUniqueRegistration(email, contact)) {
-    cout << "\nThis email or contact number is already registered. Please use a "
-            "different one.\n";
-    return;
-  }
-
-  cout << "Enter your Address: ";
-  getline(cin, address);
-
-  cout << "Enter your National ID (NID): ";
-  getline(cin, nid);
-
-  cout << "Enter your Password: ";
-  getline(cin, password);
-
-  cout << "Confirm your Password: ";
-  getline(cin, confirmPassword);
-
-  if (isPasswordValid(password, confirmPassword)) {
-    userCredentials[email] = password;
-    registeredContacts.insert(contact);
-    cout << "\nRegistration Successful\n";
-    cout << "Name: " << name << endl;
-    cout << "Email: " << email << endl;
-    cout << "Contact: " << contact << endl;
-    cout << "Address: " << address << endl;
-    cout << "NID: " << nid << endl;
-  } else {
-    cout << "\nPassword mismatch! Please try again.\n";
-  }
+    User user;
+    cout << "Enter username: ";
+    getline(cin, user.username);
+    cout << "Enter password: ";
+    getline(cin, user.password);
+    user.isAdmin = false;
+    saveUser(user);
+    cout << "Registration successful!\n";
 }
 
-int main() {
-  cout << "\nWelcome to Swift Book. Fastest Online Ticket Reservation "
-          "System\n";
+bool loginUser(string &username, bool &isAdmin) {
+    string password;
+    cout << "Enter username: ";
+    getline(cin, username);
+    cout << "Enter password: ";
+    getline(cin, password);
 
-  while (true) {
-    cout << "\nChoose an option:\n";
-    cout << "1. Register\n";
-    cout << "2. Login\n";
-    cout << "3. Exit\n";
-    cout << "Enter your choice: ";
-    int choice;
-    cin >> choice;
-    cin.ignore(); // To handle newline character
-
-    switch (choice) {
-    case 1:
-      registerUser();
-      break;
-    case 2:
-      login();
-      break;
-    case 3:
-      cout << "\nThank you for using Swift Book. Goodbye!\n";
-      return 0;
-    default:
-      cout << "\nInvalid choice. Please try again.\n";
+    ifstream file(USER_FILE);
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string u, p;
+        int admin;
+        getline(ss, u, ',');
+        getline(ss, p, ',');
+        ss >> admin;
+        if (u == username && p == password) {
+            isAdmin = admin;
+            file.close();
+            cout << "Login successful!\n";
+            return true;
+        }
     }
-  }
+    file.close();
+    cout << "Invalid credentials!\n";
+    return false;
+}
+
+void addRoute() {
+    Route route;
+    route.id = loadRoutes().size() + 1;
+    cout << "Enter transport type (Bus/Train/Airline): ";
+    getline(cin, route.type);
+    cout << "Enter origin: ";
+    getline(cin, route.origin);
+    cout << "Enter destination: ";
+    getline(cin, route.destination);
+
+    // Check for duplicate route
+    if (routeExists(route.type, route.origin, route.destination)) {
+        cout << "Route already exists!\n";
+        return;
+    }
+
+    cout << "Enter time (e.g., 14:30): ";
+    getline(cin, route.time);
+    cout << "Enter total seats: ";
+    cin >> route.totalSeats;
+    route.availableSeats = route.totalSeats;
+    cout << "Enter price: ";
+    cin >> route.price;
+    cin.ignore();
+    saveRoute(route);
+    cout << "Route added!\n";
+}
+
+void initializeRoutes() {
+    vector<Route> routes = loadRoutes();
+    vector<pair<string, string>> routeList = {
+        {"Dhaka", "Chittagong"},
+        {"Dhaka", "Cox's Bazar"},
+        {"Dhaka", "Sylhet"},
+        {"Dhaka", "Rajshahi"},
+        {"Dhaka", "Jashore"},
+        {"Dhaka", "Khulna"},
+        {"Dhaka", "Rangpur"},
+        {"Jashore", "Rajshahi"},
+        {"Jashore", "Dhaka"},
+        {"Sylhet", "Dhaka"},
+        {"Rajshahi", "Dhaka"},
+        {"Cox's Bazar", "Dhaka"},
+        {"Chittagong", "Dhaka"}
+    };
+
+    vector<string> types = {"Bus", "Train", "Airline"};
+    int id = routes.size() + 1;
+
+    for (const auto &type : types) {
+        for (const auto &route : routeList) {
+            string origin = route.first;
+            string destination = route.second;
+
+            // Skip if route already exists
+            if (routeExists(type, origin, destination)) {
+                continue;
+            }
+
+            Route r;
+            r.id = id++;
+            r.type = type;
+            r.origin = origin;
+            r.destination = destination;
+            r.time = (type == "Airline") ? "10:00" : "08:00"; // Sample time
+            r.totalSeats = (type == "Airline") ? 100 : 50;    // Sample seats
+            r.availableSeats = r.totalSeats;
+            r.price = (type == "Airline") ? 5000.0 : (type == "Train") ? 500.0 : 300.0; // Sample prices
+            saveRoute(r);
+        }
+    }
+}
+
+bool routeExists(const string &type, const string &origin, const string &destination) {
+    vector<Route> routes = loadRoutes();
+    for (const auto &r : routes) {
+        if (r.type == type && r.origin == origin && r.destination == destination) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void viewRoutes() {
+    vector<Route> routes = loadRoutes();
+    if (routes.empty()) {
+        cout << "No routes available.\n";
+        return;
+    }
+    cout << "\n=== Available Routes ===\n";
+    for (const auto &r : routes) {
+        cout << "ID: " << r.id << ", Type: " << r.type
+             << ", Route: " << r.origin << " to " << r.destination
+             << ", Time: " << r.time << ", Seats: " << r.availableSeats
+             << "/" << r.totalSeats << ", Price: $" << r.price << "\n";
+    }
+}
+
+void bookTicket(const string &username) {
+    viewRoutes();
+    int routeId, seat;
+    cout << "Enter route ID to book: ";
+    cin >> routeId;
+    cout << "Enter seat number (1-" << loadRoutes()[routeId-1].totalSeats << "): ";
+    cin >> seat;
+    cin.ignore();
+
+    vector<Route> routes = loadRoutes();
+    vector<Booking> bookings = loadBookings();
+
+    if (routeId < 1 || routeId > routes.size()) {
+        cout << "Invalid route ID!\n";
+        return;
+    }
+    Route &route = routes[routeId-1];
+    if (seat < 1 || seat > route.totalSeats) {
+        cout << "Invalid seat number!\n";
+        return;
+    }
+    for (const auto &b : bookings) {
+        if (b.routeId == routeId && b.seatNumber == seat) {
+            cout << "Seat already booked!\n";
+            return;
+        }
+    }
+    if (route.availableSeats == 0) {
+        cout << "No seats available!\n";
+        return;
+    }
+
+    Booking booking;
+    booking.bookingId = generateBookingId();
+    booking.username = username;
+    booking.routeId = routeId;
+    booking.seatNumber = seat;
+    saveBooking(booking);
+
+    route.availableSeats--;
+    ofstream file(ROUTE_FILE, ios::trunc);
+    for (const auto &r : routes) {
+        file << r.id << "," << r.type << "," << r.origin << ","
+             << r.destination << "," << r.time << "," << r.totalSeats << ","
+             << r.availableSeats << "," << r.price << "\n";
+    }
+    file.close();
+    cout << "Ticket booked! Booking ID: " << booking.bookingId << "\n";
+}
+
+void cancelTicket(const string &username) {
+    vector<Booking> bookings = loadBookings();
+    int bookingId;
+    cout << "Enter booking ID to cancel: ";
+    cin >> bookingId;
+    cin.ignore();
+
+    for (auto it = bookings.begin(); it != bookings.end(); ++it) {
+        if (it->bookingId == bookingId && it->username == username) {
+            vector<Route> routes = loadRoutes();
+            Route &route = routes[it->routeId-1];
+            route.availableSeats++;
+            ofstream file(ROUTE_FILE, ios::trunc);
+            for (const auto &r : routes) {
+                file << r.id << "," << r.type << "," << r.origin << ","
+                     << r.destination << "," << r.time << "," << r.totalSeats << ","
+                     << r.availableSeats << "," << r.price << "\n";
+            }
+            file.close();
+            bookings.erase(it);
+            ofstream bookingFile(BOOKING_FILE, ios::trunc);
+            for (const auto &b : bookings) {
+                bookingFile << b.bookingId << "," << b.username << ","
+                            << b.routeId << "," << b.seatNumber << "\n";
+            }
+            bookingFile.close();
+            cout << "Booking canceled!\n";
+            return;
+        }
+    }
+    cout << "Booking not found!\n";
+}
+
+void viewTicket(const string &username) {
+    vector<Booking> bookings = loadBookings();
+    vector<Route> routes = loadRoutes();
+    bool found = false;
+    cout << "\n=== Your Tickets ===\n";
+    for (const auto &b : bookings) {
+        if (b.username == username) {
+            found = true;
+            Route r = routes[b.routeId-1];
+            cout << "Booking ID: " << b.bookingId << ", Type: " << r.type
+                 << ", Route: " << r.origin << " to " << r.destination
+                 << ", Time: " << r.time << ", Seat: " << b.seatNumber
+                 << ", Price: $" << r.price << "\n";
+        }
+    }
+    if (!found) cout << "No tickets found.\n";
+}
+
+void saveUser(const User &user) {
+    ofstream file(USER_FILE, ios::app);
+    file << user.username << "," << user.password << "," << user.isAdmin << "\n";
+    file.close();
+}
+
+void saveRoute(const Route &route) {
+    ofstream file(ROUTE_FILE, ios::app);
+    file << route.id << "," << route.type << "," << route.origin << ","
+         << route.destination << "," << route.time << "," << route.totalSeats << ","
+         << route.availableSeats << "," << route.price << "\n";
+    file.close();
+}
+
+void saveBooking(const Booking &booking) {
+    ofstream file(BOOKING_FILE, ios::app);
+    file << booking.bookingId << "," << booking.username << ","
+         << booking.routeId << "," << booking.seatNumber << "\n";
+    file.close();
+}
+
+vector<Route> loadRoutes() {
+    vector<Route> routes;
+    ifstream file(ROUTE_FILE);
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Route r;
+        string temp;
+        getline(ss, temp, ','); r.id = stoi(temp);
+        getline(ss, r.type, ',');
+        getline(ss, r.origin, ',');
+        getline(ss, r.destination, ',');
+        getline(ss, r.time, ',');
+        getline(ss, temp, ','); r.totalSeats = stoi(temp);
+        getline(ss, temp, ','); r.availableSeats = stoi(temp);
+        getline(ss, temp); r.price = stod(temp);
+        routes.push_back(r);
+    }
+    file.close();
+    return routes;
+}
+
+vector<Booking> loadBookings() {
+    vector<Booking> bookings;
+    ifstream file(BOOKING_FILE);
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Booking b;
+        string temp;
+        getline(ss, temp, ','); b.bookingId = stoi(temp);
+        getline(ss, b.username, ',');
+        getline(ss, temp, ','); b.routeId = stoi(temp);
+        getline(ss, temp); b.seatNumber = stoi(temp);
+        bookings.push_back(b);
+    }
+    file.close();
+    return bookings;
+}
+
+int generateBookingId() {
+    vector<Booking> bookings = loadBookings();
+    return bookings.empty() ? 1 : bookings.back().bookingId + 1;
 }
